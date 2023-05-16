@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>보행자인식 시현</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ"
+            crossorigin="anonymous"
+        />
+        <script
+            type="text/javascript"
+            src="//dapi.kakao.com/v2/maps/sdk.js?appkey=11c836660b62a5c41566ea5c56538a32"
+        ></script>
+    </head>
+    <body>
+        <header>
+            <nav
+                class="navbar navbar-expand-lg bg-body-tertiary bg-dark"
+                data-bs-theme="dark"
+            >
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">
+                        <img
+                            src="https://getbootstrap.com/docs/5.3/assets/brand/bootstrap-logo.svg"
+                            alt="Logo"
+                            width="30"
+                            height="24"
+                            class="d-inline-block align-text-top"
+                        />
+                        Saebyoel
+                    </a>
+                    <button
+                        class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#navbarNav"
+                        aria-controls="navbarNav"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation"
+                    >
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link" aria-current="page" href="#"
+                                    >Home</a
+                                >
+                            </li>
+                            <li class="nav-item">
+                                <a
+                                    class="nav-link active"
+                                    aria-current="page"
+                                    href="#"
+                                    >보행자인식 시현</a
+                                >
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <div class="container">
+            <!-- Content here -->
+            <h1 class="mt-5">보행자인식 시현</h1>
+            <div class="row mt-5">
+                <div class="col">
+                    <div id="container" style="width: 100%; height: 100%"></div>
+                </div>
+                <div class="col">
+                    <div id="map" style="width: 100%; height: 600px"></div>
+                </div>
+            </div>
+        </div>
+        <script
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe"
+            crossorigin="anonymous"
+        ></script>
+        <script src="https://unpkg.com/konva@9.0.2/konva.min.js"></script>
+        <script>
+            /**
+             * 하드코딩 데이터 추가
+             **/
+
+            // 1. 카메라 데이터
+            const overlayList = [
+                {
+                    lat: 37.556149,
+                    lng: 126.923986,
+                    shortAddress: "홍익로 6길",
+                    peoples: 500,
+                    status: "양호",
+                },
+                {
+                    lat: 37.556461,
+                    lng: 126.924849,
+                    shortAddress: "양화로 18길",
+                    peoples: 1000,
+                    status: "위험",
+                },
+                {
+                    lat: 37.55555,
+                    lng: 126.923435,
+                    shortAddress: "어울마당로",
+                    peoples: 2000,
+                    status: "포화",
+                },
+            ];
+            // 2. 오브젝트 인식 데이터
+            const polys = [
+                {
+                    points: [20, 300, 50, 300, 50, 350, 20, 350],
+                    stroke: "#00D2FF",
+                },
+                {
+                    points: [55, 300, 85, 300, 85, 340, 55, 330],
+                    stroke: "#00D2FF",
+                },
+                {
+                    points: [90, 300, 120, 300, 120, 350, 90, 350],
+                    stroke: "#00D2FF",
+                },
+                {
+                    points: [90, 300, 120, 300, 120, 350, 90, 350],
+                    stroke: "#00D2FF",
+                },
+            ];
+            const statusColorMap = {
+                양호: "green",
+                위험: "yellow",
+                포화: "red",
+            };
+
+            var konvaContainer = document.getElementById("container");
+
+            var stage = new Konva.Stage({
+                container: "container",
+                width: konvaContainer.offsetWidth,
+                height: konvaContainer.offsetHeight,
+            });
+
+            var layer = new Konva.Layer();
+            stage.add(layer);
+
+            var bgLayer = new Konva.Layer();
+            stage.add(bgLayer);
+            bgLayer.setZIndex(0);
+
+            var imageObj = new Image();
+            imageObj.onload = function () {
+                var yoda = new Konva.Image({
+                    image: imageObj,
+                    width: konvaContainer.offsetWidth,
+                    height: konvaContainer.offsetHeight,
+                });
+
+                // add the shape to the layer
+                bgLayer.add(yoda);
+            };
+            imageObj.src = "./images/5dbae19e46a525034909.jpg";
+
+            layer.add(new Konva.Text({
+                x: 20,
+                y: 20,
+                text: "거리 상황",
+                fontSize: 30,
+                fontFamily: "Calibri",
+                fill: "green",
+            }));
+
+            layer.add(new Konva.Text({
+                x: 20,
+                y: 100,
+                text: overlayList[0].shortAddress,
+                fontSize: 20,
+                fontFamily: "Calibri",
+                fill: "#00D2FF",
+            }));
+
+            var text = new Konva.Text({
+                y: 100,
+                text: overlayList[0].status,
+                fontSize: 20,
+                fontFamily: "Calibri",
+                fill: statusColorMap[overlayList[0].status],
+            });
+            layer.add(text);
+            text.x(konvaContainer.offsetWidth - text.width() - 20)
+
+            polys.forEach((value) => {
+                var poly = new Konva.Line({
+                    points: value.points,
+                    stroke: value.stroke,
+                    strokeWidth: 2,
+                    closed: true,
+                });
+                layer.add(poly);
+            });
+
+            var container = document.getElementById("map"); //지도를 담을 영역의 DOM 레퍼런스
+            var options = {
+                //지도를 생성할 때 필요한 기본 옵션
+                center: new kakao.maps.LatLng(37.556133, 126.924003), //지도의 중심좌표.
+                level: 2, //지도의 레벨(확대, 축소 정도)
+            };
+
+            var map = new kakao.maps.Map(container, options); //지도 생성 및 객체 리턴
+
+            // 일반 지도와 스카이뷰로 지도 타입을 전환할 수 있는 지도타입 컨트롤을 생성합니다
+            var mapTypeControl = new kakao.maps.MapTypeControl();
+
+            // 지도에 컨트롤을 추가해야 지도위에 표시됩니다
+            // kakao.maps.ControlPosition은 컨트롤이 표시될 위치를 정의하는데 TOPRIGHT는 오른쪽 위를 의미합니다
+            map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+
+            // 지도 확대 축소를 제어할 수 있는  줌 컨트롤을 생성합니다
+            var zoomControl = new kakao.maps.ZoomControl();
+            map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+
+            const statusColorClassMap = {
+                양호: "bg-success",
+                위험: "bg-warning",
+                포화: "bg-danger",
+            };
+
+            const getCamera = () => {};
+
+            overlayList.forEach((value) => {
+                // 커스텀 오버레이에 표시할 내용입니다
+                // HTML 문자열 또는 Dom Element 입니다
+                var content = `
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-primary">${
+        value.shortAddress
+    }</button>
+    <button type="button" class="btn btn-primary position-relative">
+        ${value.peoples.toLocaleString()}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill ${
+            statusColorClassMap[value.status]
+        }">
+        ${value.status}
+        <span class="visually-hidden">status</span>
+        </span>
+    </button>
+</div>
+                `;
+
+                // 커스텀 오버레이가 표시될 위치입니다
+                var position = new kakao.maps.LatLng(value.lat, value.lng);
+
+                // 커스텀 오버레이를 생성합니다
+                var customOverlay = new kakao.maps.CustomOverlay({
+                    position: position,
+                    content: content,
+                });
+
+                // 커스텀 오버레이를 지도에 표시합니다
+                customOverlay.setMap(map);
+            });
+        </script>
+    </body>
+</html>
