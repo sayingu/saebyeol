@@ -82,57 +82,136 @@
         ></script>
         <script src="https://unpkg.com/konva@9.0.2/konva.min.js"></script>
         <script>
-            /**
-             * 하드코딩 데이터 추가
-             **/
+            const getList = async () => {
+                const statusColorClassMap = {
+                    양호: "bg-success",
+                    위험: "bg-warning",
+                    포화: "bg-danger",
+                };
 
-            // 1. 카메라 데이터
-            const overlayList = [
-                {
-                    lat: 37.556149,
-                    lng: 126.923986,
-                    shortAddress: "홍익로 6길",
-                    peoples: 500,
-                    status: "양호",
-                },
-                {
-                    lat: 37.556461,
-                    lng: 126.924849,
-                    shortAddress: "양화로 18길",
-                    peoples: 1000,
-                    status: "위험",
-                },
-                {
-                    lat: 37.55555,
-                    lng: 126.923435,
-                    shortAddress: "어울마당로",
-                    peoples: 2000,
-                    status: "포화",
-                },
-            ];
-            // 2. 오브젝트 인식 데이터
-            const polys = [
-                {
-                    points: [20, 300, 50, 300, 50, 350, 20, 350],
-                    stroke: "#00D2FF",
-                },
-                {
-                    points: [55, 300, 85, 300, 85, 340, 55, 330],
-                    stroke: "#00D2FF",
-                },
-                {
-                    points: [90, 300, 120, 300, 120, 350, 90, 350],
-                    stroke: "#00D2FF",
-                },
-                {
-                    points: [90, 300, 120, 300, 120, 350, 90, 350],
-                    stroke: "#00D2FF",
-                },
-            ];
-            const statusColorMap = {
-                양호: "green",
-                위험: "yellow",
-                포화: "red",
+                const overlayList = await fetch("./data.json").then(
+                    (response) => response.json()
+                );
+
+                overlayList.forEach((value) => {
+                    // 커스텀 오버레이에 표시할 내용입니다
+                    // HTML 문자열 또는 Dom Element 입니다
+                    var content = `
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-primary" onclick="javascript:getDetail(${
+        value.camId
+    });">${value.shortAddress}</button>
+    <button type="button" class="btn btn-primary position-relative disabled">
+        ${value.shortCount}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill ${
+            statusColorClassMap[value.status]
+        }">
+        ${value.status}
+        <span class="visually-hidden">status</span>
+        </span>
+    </button>
+</div>`;
+
+                    // 커스텀 오버레이가 표시될 위치입니다
+                    var position = new kakao.maps.LatLng(value.lat, value.lng);
+
+                    // 커스텀 오버레이를 생성합니다
+                    var customOverlay = new kakao.maps.CustomOverlay({
+                        position: position,
+                        content: content,
+                    });
+
+                    // 커스텀 오버레이를 지도에 표시합니다
+                    customOverlay.setMap(map);
+                });
+
+                getDetail(overlayList[0].camId);
+            };
+
+            const getDetail = async (camId) => {
+                const statusColorMap = {
+                    양호: "green",
+                    위험: "yellow",
+                    포화: "red",
+                };
+
+                const overlayList = await fetch("./data.json").then(
+                    (response) => response.json()
+                );
+
+                const detail = overlayList.find(
+                    (value) => value.camId === camId
+                );
+
+                if (detail) {
+                    bgLayer.removeChildren();
+                    layer.removeChildren();
+                }
+
+                var imageObj = new Image();
+                imageObj.onload = function () {
+                    var yoda = new Konva.Image({
+                        image: imageObj,
+                        width: konvaContainer.offsetWidth,
+                        height: konvaContainer.offsetHeight,
+                    });
+
+                    // add the shape to the layer
+                    bgLayer.add(yoda);
+                };
+                imageObj.src = detail.img.lastest;
+
+                layer.add(
+                    new Konva.Text({
+                        x: 20,
+                        y: 20,
+                        text: "거리 상황",
+                        fontSize: 30,
+                        fontFamily: "Calibri",
+                        fill: "green",
+                    })
+                );
+
+                layer.add(
+                    new Konva.Text({
+                        x: 20,
+                        y: 100,
+                        text: detail.shortAddress,
+                        fontSize: 20,
+                        fontFamily: "Calibri",
+                        fill: "#00D2FF",
+                    })
+                );
+
+                var text = new Konva.Text({
+                    y: 100,
+                    text: detail.status,
+                    fontSize: 20,
+                    fontFamily: "Calibri",
+                    fill: statusColorMap[detail.status],
+                });
+                layer.add(text);
+                text.x(konvaContainer.offsetWidth - text.width() - 20);
+
+                var text = new Konva.Text({
+                    y: 50,
+                    text: detail.count.toLocaleString(),
+                    fontSize: 20,
+                    fontFamily: "Calibri",
+                    fill: statusColorMap[detail.status],
+                });
+                layer.add(text);
+                text.x(konvaContainer.offsetWidth - text.width() - 20);
+
+                detail.img.polys.forEach((value) => {
+                    var poly = new Konva.Line({
+                        points: value.points,
+                        stroke: value.stroke,
+                        strokeWidth: 2,
+                        closed: true,
+                    });
+                    layer.add(poly);
+                });
             };
 
             var konvaContainer = document.getElementById("container");
@@ -149,57 +228,6 @@
             var bgLayer = new Konva.Layer();
             stage.add(bgLayer);
             bgLayer.setZIndex(0);
-
-            var imageObj = new Image();
-            imageObj.onload = function () {
-                var yoda = new Konva.Image({
-                    image: imageObj,
-                    width: konvaContainer.offsetWidth,
-                    height: konvaContainer.offsetHeight,
-                });
-
-                // add the shape to the layer
-                bgLayer.add(yoda);
-            };
-            imageObj.src = "./images/5dbae19e46a525034909.jpg";
-
-            layer.add(new Konva.Text({
-                x: 20,
-                y: 20,
-                text: "거리 상황",
-                fontSize: 30,
-                fontFamily: "Calibri",
-                fill: "green",
-            }));
-
-            layer.add(new Konva.Text({
-                x: 20,
-                y: 100,
-                text: overlayList[0].shortAddress,
-                fontSize: 20,
-                fontFamily: "Calibri",
-                fill: "#00D2FF",
-            }));
-
-            var text = new Konva.Text({
-                y: 100,
-                text: overlayList[0].status,
-                fontSize: 20,
-                fontFamily: "Calibri",
-                fill: statusColorMap[overlayList[0].status],
-            });
-            layer.add(text);
-            text.x(konvaContainer.offsetWidth - text.width() - 20)
-
-            polys.forEach((value) => {
-                var poly = new Konva.Line({
-                    points: value.points,
-                    stroke: value.stroke,
-                    strokeWidth: 2,
-                    closed: true,
-                });
-                layer.add(poly);
-            });
 
             var container = document.getElementById("map"); //지도를 담을 영역의 DOM 레퍼런스
             var options = {
@@ -221,46 +249,7 @@
             var zoomControl = new kakao.maps.ZoomControl();
             map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
-            const statusColorClassMap = {
-                양호: "bg-success",
-                위험: "bg-warning",
-                포화: "bg-danger",
-            };
-
-            const getCamera = () => {};
-
-            overlayList.forEach((value) => {
-                // 커스텀 오버레이에 표시할 내용입니다
-                // HTML 문자열 또는 Dom Element 입니다
-                var content = `
-<div class="btn-group" role="group">
-    <button type="button" class="btn btn-outline-primary">${
-        value.shortAddress
-    }</button>
-    <button type="button" class="btn btn-primary position-relative">
-        ${value.peoples.toLocaleString()}
-        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill ${
-            statusColorClassMap[value.status]
-        }">
-        ${value.status}
-        <span class="visually-hidden">status</span>
-        </span>
-    </button>
-</div>
-                `;
-
-                // 커스텀 오버레이가 표시될 위치입니다
-                var position = new kakao.maps.LatLng(value.lat, value.lng);
-
-                // 커스텀 오버레이를 생성합니다
-                var customOverlay = new kakao.maps.CustomOverlay({
-                    position: position,
-                    content: content,
-                });
-
-                // 커스텀 오버레이를 지도에 표시합니다
-                customOverlay.setMap(map);
-            });
+            getList();
         </script>
     </body>
 </html>
